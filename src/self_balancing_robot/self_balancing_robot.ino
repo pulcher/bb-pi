@@ -60,9 +60,9 @@ LMotorController motorController(ENA, IN1, IN2, ENB, IN3, IN4, motorSpeedFactorL
 volatile bool mpuInterrupt = false; // indicates whether MPU interrupt pin has gone high
 
 
-RF24 radio(3, 4); // CE, CSN
-const byte address[6] = "06720"; //NRF adress
-unsigned long lastRecvTime = 0;  //Used to check for delays
+// RF24 radio(3, 4); // CE, CSN
+// const byte address[6] = "06720"; //NRF adress
+// unsigned long lastRecvTime = 0;  //Used to check for delays
 
 //Structure of received data by radio
 struct data {
@@ -77,8 +77,8 @@ struct data {
 
 data receive_data;
 
-Ultrasonic ultraleft(A2, A3);   // (Trig PIN,Echo PIN)
-Ultrasonic ultraright(A0, A1);  // (Trig PIN,Echo PIN)
+// Ultrasonic ultraleft(A2, A3);   // (Trig PIN,Echo PIN)
+// Ultrasonic ultraright(A0, A1);  // (Trig PIN,Echo PIN)
 
 int distanceCm;
 int distanceCm2;;
@@ -175,12 +175,12 @@ void setup() {
     //Serial.println(F(")"));
   }
 
-  radio.begin();
-  radio.setAutoAck(false);
-  radio.openReadingPipe(0, address);
-  radio.setPALevel(RF24_PA_MIN);
-  radio.setDataRate(RF24_250KBPS);
-  radio.startListening();
+  // radio.begin();
+  // radio.setAutoAck(false);
+  // radio.openReadingPipe(0, address);
+  // radio.setPALevel(RF24_PA_MIN);
+  // radio.setDataRate(RF24_250KBPS);
+  // radio.startListening();
 
 }
 
