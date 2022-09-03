@@ -1,4 +1,5 @@
 #include <L298NX2.h>
+#include <Servo.h>
 
 const unsigned int EN_A = 5;
 const unsigned int IN1_A = 6;
@@ -8,20 +9,32 @@ const unsigned int IN1_B = 8;
 const unsigned int IN2_B = 9;
 const unsigned int EN_B = 10;
 
-//Initialize both motors
+const unsigned int RIGHT_SERVO_PIN = 11;
+const unsigned int LEFT_SERVO_PIN = 12;
+
+// Initialize both servo for the leg height
+Servo rightServo;
+Servo leftServo;
+int rightServoPosition = 80;
+int leftServoPosition = 80;
+
+
+// Initialize both motors
 L298NX2 motors(EN_A, IN1_A, IN2_A, EN_B, IN1_B, IN2_B);
 
 int stepA = 1;
-unsigned long delayA = 3000;
-int directionA = L298N::FORWARD;
+unsigned long delayA = 10;
+int directionA = L298N::STOP;
+int speedA = 120;
 
-unsigned long delayB = 3000;
-int directionB = L298N::BACKWARD;
+unsigned long delayB = 10;
+int directionB = L298N::STOP;
+int speedB = 120;
 
 void setup()
 {
   // Used to display information
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   // Wait for Serial Monitor to be opened
   while (!Serial)
@@ -29,8 +42,23 @@ void setup()
     //do nothing
   }
 
-  motors.setSpeedA(120);
-  motors.setSpeedB(80);
+  // activity light
+  pinMode(LED_BUILTIN, OUTPUT);
+
+  // initial servo setting for height
+  rightServo.attach(RIGHT_SERVO_PIN);
+  leftServo.attach(LEFT_SERVO_PIN);
+
+  // rightServo.write(rightServoPosition);
+  // leftServo.write(leftServoPosition);
+
+  motors.setSpeedA(speedA);
+  motors.setSpeedB(speedB);
+
+  // Setup the leg servos
+
+
+
 
   //Print initial information
   printInfo();
@@ -40,10 +68,20 @@ void setup()
 void loop()
 {
   // Drive both motors without blocking code execution
-  motors.runForA(delayA, directionA, callbackA);
-  motors.runForB(delayB, directionB, callbackB);
-  
+  // motors.runForA(delayA, directionA, callbackA);
+  // motors.runForB(delayB, directionB, callbackB);
+
+  // rightServo.write(rightServoPosition);
+  // leftServo.write(leftServoPosition);
+
   //Other stuff...
+
+  digitalWrite(13, HIGH);   // turn the LED on (HIGH is the voltage level)
+  delay(1000);                       // wait for a second
+  digitalWrite(13, LOW);    // turn the LED off by making the voltage LOW
+  delay(1000);                       // wait for a second
+
+  printInfo();
 }
 
 /*
@@ -113,6 +151,16 @@ void callbackB()
 //Print info in Serial Monitor
 void printInfo()
 {
+  Serial.print("Left set position: ");
+  Serial.println(leftServoPosition);
+  Serial.print("Left read position: ");
+  Serial.println(leftServo.read());
+
+  Serial.print("Right position: ");
+  Serial.println(rightServoPosition);
+  Serial.print("Right read position: ");
+  Serial.println(rightServo.read());
+
   Serial.print("Motor A | Speed = ");
   Serial.print(motors.getSpeedA());
   Serial.print(" | Direction = ");
