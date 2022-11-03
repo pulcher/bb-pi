@@ -4,6 +4,7 @@
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
 #include <arduino-timer.h>
+#include "QuickPID.h"
 
 // Constants for L298N control
 const unsigned int EN_A = 5;
@@ -40,6 +41,19 @@ unsigned long delayB = 10;
 int directionB = L298N::STOP;
 int speedB = 120;
 
+//Define Variables we'll be connecting to
+float Setpoint, Input, Output;
+float accY, accZ, gyroX;
+float accAngle = 0, gyroAngle = 0, previousAngle = 0;
+float gyroRate = 0;
+
+//Define the aggressive and conservative and POn Tuning Parameters
+float aggKp = 4, aggKi = 0.2, aggKd = 1;
+float consKp = 1, consKi = 0.00, consKd = 0.0;
+
+//Specify the links
+QuickPID myPID(&Input, &Output, &Setpoint);
+
 void setup()
 {
   // Used to display information
@@ -74,15 +88,18 @@ void setup()
   Serial.println("MPU6050 Found!");
 
   //setupt motion detection
-  mpu.setHighPassFilter(MPU6050_HIGHPASS_0_63_HZ);
+  mpu.setHighPassFilter(MPU6050_HIGHPASS_DISABLE);
   mpu.setMotionDetectionThreshold(1);
   mpu.setMotionDetectionDuration(1);
   mpu.setInterruptPinLatch(true);	// Keep it latched.  Will turn off when reinitialized.
   mpu.setInterruptPinPolarity(true);
   mpu.setMotionInterrupt(true);
 
-  motors.setSpeedA(speedA);
-  motors.setSpeedB(speedB);
+  // PID setup
+  Setpoint = 0;
+
+  // motors.setSpeedA(speedA);
+  // motors.setSpeedB(speedB);
 
   // Setup the leg servos
 
@@ -92,7 +109,12 @@ void setup()
   timer.every(500, toggle_led);
 
   // call the print_message function every 1000 millis (1 second)
-  timer.every(1000, print_message);
+  //timer.every(1000, print_message);
+
+  myPID.SetMode(myPID.Control::automatic);
+  myPID.SetTunings(consKp, consKi, consKd);
+  myPID.SetOutputLimits(-90, 90);
+  myPID.SetSampleTimeUs(2000);
 
   //Print initial information
   printInfo();
@@ -102,6 +124,7 @@ void setup()
 void loop()
 {
   timer.tick(); // tick the timer
+  
   
   // Drive both motors without blocking code execution
   // motors.runForA(delayA, directionA, callbackA);
@@ -114,33 +137,67 @@ void loop()
   // sensors_event_t a, g, temp;
   // mpu.getEvent(&a, &g, &temp);
 
-    if(mpu.getMotionInterruptStatus()) {
+    //if(mpu.getMotionInterruptStatus()) {
       /* Get new sensor events with the readings */
       sensors_event_t a, g, temp;
       mpu.getEvent(&a, &g, &temp);
 
+      //Input = a.acceleration.y;
+
+      accZ = a.acceleration.z;
+      accY = a.acceleration.y;
+
+      gyroX = g.gyro.x;
+
+      accAngle = atan2(accY, -accZ) * RAD_TO_DEG;
+
+      gyroRate = gyroX / 131;
+
+      Input = 0.97 * (previousAngle + gyroAngle) + 0.03 * (accAngle);
+      previousAngle = Input;
+
+      float gap = abs(Setpoint - Input); //distance away from setpoint
+      
+      // if (gap < .10) { //we're close to setpoint, use conservative tuning parameters
+      //   myPID.SetTunings(consKp, consKi, consKd);
+      // } else {
+      //   //we're far from setpoint, use aggressive tuning parameters
+      //   myPID.SetTunings(aggKp, aggKi, aggKd);
+      // }
+
+      myPID.Compute();
+
       /* Print out the values */
-      Serial.print("AccelX:");
-      Serial.print(a.acceleration.x);
+      Serial.print("Input:");
+      Serial.print(Input, 15);
+      Serial.print(",");      
+      Serial.print("Output:");
+      Serial.print(Output, 15);
+      Serial.print(",");
+      Serial.print("SetPoint: ");
+      Serial.print(Setpoint, 15);
+      Serial.print(",");
+      Serial.print("Gap: ");
+      Serial.print(gap, 15);
       Serial.print(",");
       Serial.print("AccelY:");
-      Serial.print(a.acceleration.y);
+      Serial.print(a.acceleration.y, 15);
       Serial.print(",");
       Serial.print("AccelZ:");
-      Serial.print(a.acceleration.z);
+      Serial.print(a.acceleration.z, 15);
       Serial.print(", ");
       Serial.print("GyroX:");
-      Serial.print(g.gyro.x);
-      Serial.print(",");
-      Serial.print("GyroY:");
-      Serial.print(g.gyro.y);
-      Serial.print(",");
-      Serial.print("GyroZ:");
-      Serial.print(g.gyro.z);
-      Serial.println("");
-    }
+      Serial.print(g.gyro.x, 15);
+      // Serial.print(",");
+      // Serial.print("GyroY:");
+      // Serial.print(g.gyro.y);
+      // Serial.print(",");
+      // Serial.print("GyroZ:");
+      // Serial.print(g.gyro.z);
+      Serial.println();
+   // }
 
-  //delay(10);
+  delay(50);
 }
 
 bool toggle_led(void *) {
