@@ -39,6 +39,8 @@ void loop() {
   
   // Gyro
   Serial.print( imu.gx() );
+  Serial.print("     ");
+  Serial.print( imu.gx()/131);
   // Serial.print( " " );
   // Serial.print( imu.gy() );
   // Serial.print( " " );

@@ -1,10 +1,11 @@
 #include <L298NX2.h>
 #include <Servo.h>
-#include <Adafruit_MPU6050.h>
-#include <Adafruit_Sensor.h>
 #include <Wire.h>
 #include <arduino-timer.h>
 #include "QuickPID.h"
+#include <basicMPU6050.h> 
+
+#define RAD_TO_DEG 57.295779513082320876798154814105
 
 // Constants for L298N control
 const unsigned int EN_A = 5;
@@ -27,7 +28,7 @@ Servo rightServo;
 Servo leftServo;
 int rightServoPosition = 50;
 int leftServoPosition = 50;
-Adafruit_MPU6050 mpu;
+basicMPU6050<> imu;
 
 // Initialize both motors
 L298NX2 motors(EN_A, IN1_A, IN2_A, EN_B, IN1_B, IN2_B);
@@ -76,27 +77,18 @@ void setup()
   // leftServo.write(leftServoPosition);
 
   // mpu dryi[]
-  Serial.println("Adafruit MPU6050 test!");
+  Serial.println("MPU6050 test!");
 
-  // Try to initialize!
-  if (!mpu.begin()) {
-    Serial.println("Failed to find MPU6050 chip");
-    while (1) {
-      delay(10);
-    }
-  }
+  // Set registers - Always required
+  imu.setup();
+
+  // Initial calibration of gyro
+  imu.setBias();
+
   Serial.println("MPU6050 Found!");
 
-  //setupt motion detection
-  mpu.setHighPassFilter(MPU6050_HIGHPASS_DISABLE);
-  mpu.setMotionDetectionThreshold(1);
-  mpu.setMotionDetectionDuration(1);
-  mpu.setInterruptPinLatch(true);	// Keep it latched.  Will turn off when reinitialized.
-  mpu.setInterruptPinPolarity(true);
-  mpu.setMotionInterrupt(true);
-
   // PID setup
-  Setpoint = 127.0;
+  Setpoint = 85.0;
 
   // motors.setSpeedA(speedA);
   // motors.setSpeedB(speedB);
@@ -125,7 +117,11 @@ void loop()
 {
   timer.tick(); // tick the timer
   
-  
+    // Update gyro calibration 
+  imu.updateBias();
+ 
+  accAngle = atan2(imu.az(), -imu.ay()) * RAD_TO_DEG;
+
   // Drive both motors without blocking code execution
   // motors.runForA(delayA, directionA, callbackA);
   // motors.runForB(delayB, directionB, callbackB);
@@ -135,63 +131,30 @@ void loop()
 
     //if(mpu.getMotionInterruptStatus()) {
       /* Get new sensor events with the readings */
-      sensors_event_t a, g, temp;
-      mpu.getEvent(&a, &g, &temp);
 
-      //Input = a.acceleration.y;
-
-      accZ = a.acceleration.z;
-      accY = a.acceleration.y;
-
-      gyroX = g.gyro.x;
- 
-      accAngle = atan2(accY, -accZ) * RAD_TO_DEG;
-
-      gyroRate = gyroX / 131;
-
-      gyroAngle = (float)gyroRate * 0.001;
-
-      Input = 0.97 * (previousAngle + gyroAngle) + 0.03 * (accAngle);
+      Input = 0.97 * (previousAngle) + 0.03 * (accAngle);
       previousAngle = Input;
-
-      //float gap = abs(Setpoint - Input); //distance away from setpoint
-      
-      // if (gap < .10) { //we're close to setpoint, use conservative tuning parameters
-      //   myPID.SetTunings(consKp, consKi, consKd);
-      // } else {
-      //   //we're far from setpoint, use aggressive tuning parameters
-      //   myPID.SetTunings(aggKp, aggKi, aggKd);
-      // }
 
       myPID.Compute();
 
       /* Print out the values */
       Serial.print("Input:");
-      Serial.print(Input, 10);
+      Serial.print(Input, 5);
       Serial.print(",");      
       Serial.print("Output:");
-      Serial.print(Output, 10);
+      Serial.print(Output, 5);
       Serial.print(",");
-      Serial.print("SetPoint: ");
-      Serial.print(Setpoint, 10);
+      Serial.print("accAngle: ");
+      Serial.print(accAngle, 5);
       Serial.print(",");
-      // Serial.print("Gap: ");
-      // Serial.print(gap, 10);
-      // Serial.print(",");
       Serial.print("AccelY:");
-      Serial.print(a.acceleration.y, 10);
+      Serial.print(imu.ay(), 5);
       Serial.print(",");
       Serial.print("AccelZ:");
-      Serial.print(a.acceleration.z, 10);
+      Serial.print(imu.az(), 5);
       Serial.print(", ");
       Serial.print("GyroX:");
-      Serial.print(g.gyro.x, 10);
-      // Serial.print(",");
-      // Serial.print("GyroY:");
-      // Serial.print(g.gyro.y);
-      // Serial.print(",");
-      // Serial.print("GyroZ:");
-      // Serial.print(g.gyro.z);
+      Serial.print(imu.gx(), 5);
       Serial.println();
    // }
 
