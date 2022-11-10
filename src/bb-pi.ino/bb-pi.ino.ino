@@ -49,7 +49,7 @@ float gyroRate = 0;
 
 //Define the aggressive and conservative and POn Tuning Parameters
 float aggKp = 4, aggKi = 0.2, aggKd = 1;
-float consKp = 1, consKi = 0.00, consKd = 0.0;
+float consKp = 10, consKi = 0.00, consKd = 0.0;
 
 //Specify the links
 QuickPID myPID(&Input, &Output, &Setpoint);
@@ -96,7 +96,7 @@ void setup()
   mpu.setMotionInterrupt(true);
 
   // PID setup
-  Setpoint = 0;
+  Setpoint = 127.0;
 
   // motors.setSpeedA(speedA);
   // motors.setSpeedB(speedB);
@@ -113,7 +113,7 @@ void setup()
 
   myPID.SetMode(myPID.Control::automatic);
   myPID.SetTunings(consKp, consKi, consKd);
-  myPID.SetOutputLimits(-90, 90);
+  myPID.SetOutputLimits(-127, 127);
   myPID.SetSampleTimeUs(2000);
 
   //Print initial information
@@ -133,10 +133,6 @@ void loop()
   // rightServo.write(rightServoPosition);
   // leftServo.write(leftServoPosition);
 
-  /* Get new sensor events with the readings */
-  // sensors_event_t a, g, temp;
-  // mpu.getEvent(&a, &g, &temp);
-
     //if(mpu.getMotionInterruptStatus()) {
       /* Get new sensor events with the readings */
       sensors_event_t a, g, temp;
@@ -148,15 +144,17 @@ void loop()
       accY = a.acceleration.y;
 
       gyroX = g.gyro.x;
-
+ 
       accAngle = atan2(accY, -accZ) * RAD_TO_DEG;
 
       gyroRate = gyroX / 131;
 
+      gyroAngle = (float)gyroRate * 0.001;
+
       Input = 0.97 * (previousAngle + gyroAngle) + 0.03 * (accAngle);
       previousAngle = Input;
 
-      float gap = abs(Setpoint - Input); //distance away from setpoint
+      //float gap = abs(Setpoint - Input); //distance away from setpoint
       
       // if (gap < .10) { //we're close to setpoint, use conservative tuning parameters
       //   myPID.SetTunings(consKp, consKi, consKd);
@@ -169,25 +167,25 @@ void loop()
 
       /* Print out the values */
       Serial.print("Input:");
-      Serial.print(Input, 15);
+      Serial.print(Input, 10);
       Serial.print(",");      
       Serial.print("Output:");
-      Serial.print(Output, 15);
+      Serial.print(Output, 10);
       Serial.print(",");
       Serial.print("SetPoint: ");
-      Serial.print(Setpoint, 15);
+      Serial.print(Setpoint, 10);
       Serial.print(",");
-      Serial.print("Gap: ");
-      Serial.print(gap, 15);
-      Serial.print(",");
+      // Serial.print("Gap: ");
+      // Serial.print(gap, 10);
+      // Serial.print(",");
       Serial.print("AccelY:");
-      Serial.print(a.acceleration.y, 15);
+      Serial.print(a.acceleration.y, 10);
       Serial.print(",");
       Serial.print("AccelZ:");
-      Serial.print(a.acceleration.z, 15);
+      Serial.print(a.acceleration.z, 10);
       Serial.print(", ");
       Serial.print("GyroX:");
-      Serial.print(g.gyro.x, 15);
+      Serial.print(g.gyro.x, 10);
       // Serial.print(",");
       // Serial.print("GyroY:");
       // Serial.print(g.gyro.y);
