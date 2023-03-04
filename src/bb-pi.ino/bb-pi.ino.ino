@@ -90,8 +90,8 @@ void setup()
   // PID setup
   Setpoint = 85.0;
 
-  // motors.setSpeedA(speedA);
-  // motors.setSpeedB(speedB);
+  motors.setSpeedA(speedA);
+  motors.setSpeedB(speedB);
 
   // Setup the leg servos
 
@@ -123,13 +123,13 @@ void loop()
   accAngle = atan2(imu.az(), -imu.ay()) * RAD_TO_DEG;
 
   // Drive both motors without blocking code execution
-  // motors.runForA(delayA, directionA, callbackA);
-  // motors.runForB(delayB, directionB, callbackB);
+  motors.runForA(delayA, directionA, callbackA);
+  motors.runForB(delayA, directionA, callbackA);
 
   // rightServo.write(rightServoPosition);
   // leftServo.write(leftServoPosition);
 
-    //if(mpu.getMotionInterruptStatus()) {
+
       /* Get new sensor events with the readings */
 
       Input = 0.97 * (previousAngle) + 0.03 * (accAngle);
@@ -138,24 +138,24 @@ void loop()
       myPID.Compute();
 
       /* Print out the values */
-      Serial.print("Input:");
-      Serial.print(Input, 5);
-      Serial.print(",");      
-      Serial.print("Output:");
-      Serial.print(Output, 5);
-      Serial.print(",");
-      Serial.print("accAngle: ");
-      Serial.print(accAngle, 5);
-      Serial.print(",");
-      Serial.print("AccelY:");
-      Serial.print(imu.ay(), 5);
-      Serial.print(",");
-      Serial.print("AccelZ:");
-      Serial.print(imu.az(), 5);
-      Serial.print(", ");
-      Serial.print("GyroX:");
-      Serial.print(imu.gx(), 5);
-      Serial.println();
+      // Serial.print("Input:");
+      // Serial.print(Input, 5);
+      // Serial.print(",");      
+      // Serial.print("Output:");
+      // Serial.print(Output, 5);
+      // Serial.print(",");
+      // Serial.print("accAngle: ");
+      // Serial.print(accAngle, 5);
+      // Serial.print(",");
+      // Serial.print("AccelY:");
+      // Serial.print(imu.ay(), 5);
+      // Serial.print(",");
+      // Serial.print("AccelZ:");
+      // Serial.print(imu.az(), 5);
+      // Serial.print(", ");
+      // Serial.print("GyroX:");
+      // Serial.print(imu.gx(), 5);
+      // Serial.println();
    // }
 
   delay(50);
@@ -239,15 +239,15 @@ void callbackB()
 //Print info in Serial Monitor
 void printInfo()
 {
-  Serial.print("Left set position: ");
-  Serial.println(leftServoPosition);
-  Serial.print("Left read position: ");
-  Serial.println(leftServo.read());
+  // Serial.print("Left set position: ");
+  // Serial.println(leftServoPosition);
+  // Serial.print("Left read position: ");
+  // Serial.println(leftServo.read());
 
-  Serial.print("Right position: ");
-  Serial.println(rightServoPosition);
-  Serial.print("Right read position: ");
-  Serial.println(rightServo.read());
+  // Serial.print("Right position: ");
+  // Serial.println(rightServoPosition);
+  // Serial.print("Right read position: ");
+  // Serial.println(rightServo.read());
 
   Serial.print("Motor A | Speed = ");
   Serial.print(motors.getSpeedA());
