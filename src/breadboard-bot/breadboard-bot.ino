@@ -14,11 +14,15 @@
 #define RIGHT_MOTOR_B 10
 
 // analog set point reading
-int potPin = A0;
-int potValue = 0;
-int mappedPotValue = 0;
-float floatMappedPotValue =0.0;
+int setPointTrim = A0;
+int pTrim = A1;
+int iTrim = A2;
+int dTrim = A3;
 
+int setPointTrimValue = 0;
+int pTrimValue = 0;
+int iTrimValue = 0;
+int dTrimValue = 0;
 double Input, Output;
 
 //the angle where the robot is stable
@@ -28,6 +32,8 @@ double Setpoint = -0.6;
 double Kp = 9.0;
 double Ki = 0.0;
 double Kd = 4.0;
+
+unsigned long pid_time_prev = 0;
 
 //required variables
 int accY, accZ, gyroX;
@@ -71,30 +77,48 @@ void setup() {
   //setting PID parameters
   myPID.SetMode(AUTOMATIC);
   myPID.SetOutputLimits(-250, 250);
-  myPID.SetSampleTime(5);  //how often pid is evaluated in millisec
+  myPID.SetSampleTime(50);  //how often pid is evaluated in millisec
   myPID.SetControllerDirection(REVERSE);
 
-  Setpoint = mapToFloat(analogRead(potPin));
-  
+  Setpoint = mapToSetPoint(analogRead(setPointTrim));
+
+  updateTunings();
+
   //initialize the timer
   initTimer2();
 }
 
+void updateTunings() {
+  Kp = mapToP(analogRead(pTrim));
+  // Ki = mapToI(analogRead(iTrim));
+  // Kd = mapToD(analogRead(dTrim));
+
+  Ki = 0.0;
+  Kd = 0.0;
+
+  myPID.SetTunings(Kp, Ki, Kd);
+}
+
 void setMotorSpeed(MX1508 *motor, int pwm) {
-  if (pwm < 0) {
-    motor->motorGo(-250);
-  } else {
-    motor->motorGo(250);
+  if (abs(pwm) <= 10) {
+    pwm = 0;
   }
+
+  if (pwm < 0) {
+    motor->motorGo(-80);
+  } else {
+    motor->motorGo(80);
+  }
+
   delay(2);
   motor->motorGo(pwm);
 }
 
 int mapToLeft(int pwm) {
   if (pwm < 0) {
-    return map(pwm, -250, -0, -250, 0);
+    return map(pwm, -250, -0, -250, -7);
   } else {
-    return map(pwm, 0, 250, 0, 250);
+    return map(pwm, 0, 250, 7, 250);
   }
 }
 
@@ -106,8 +130,23 @@ int mapToRight(int pwm) {
   }
 }
 
-float mapToFloat(long sensorValue) {
-  mappedPotValue = map(sensorValue, 0, 1023, -5000, 5000);
+float mapToSetPoint(long sensorValue) {
+  int mappedPotValue = map(sensorValue, 0, 1023, -8000, 8000);
+  return  mappedPotValue / 1000.000;
+}
+
+float mapToP(long sensorValue) {
+  int mappedPotValue = map(sensorValue, 10, 1023, 0, 30000);
+  return  mappedPotValue / 1000.000;
+}
+
+float mapToI(long sensorValue) {
+  int mappedPotValue = map(sensorValue, 0, 1023, 0, 15000);
+  return  mappedPotValue / 1000.000;
+}
+
+float mapToD(long sensorValue) {
+  int mappedPotValue = map(sensorValue, 0, 1023, 0, 15000);
   return  mappedPotValue / 1000.000;
 }
 
@@ -128,7 +167,7 @@ void loop() {
   Input = 0.97 * (previousAngle + gyroAngle) + 0.03 * (accAngle);
   previousAngle = Input;
 
-  Setpoint = mapToFloat(analogRead(potPin));
+  Setpoint = mapToSetPoint(analogRead(setPointTrim));
   
   myPID.Compute();
 
@@ -152,12 +191,26 @@ void loop() {
   setMotorSpeed(&leftMotor, mapToLeft(Output));
   setMotorSpeed(&rightMotor, mapToRight(Output));
   
-  Serial.print(", left: ");
-  Serial.print(leftMotor.getPWM());
-  Serial.print(", right: ");
-  Serial.print(rightMotor.getPWM());
+  // Serial.print(", left: ");
+  // Serial.print(leftMotor.getPWM());
+  // Serial.print(", right: ");
+  // Serial.print(rightMotor.getPWM());
+
+  Serial.print(", Kp: ");
+  Serial.print(Kp);
+  Serial.print(", Ki: ");
+  Serial.print(Ki);
+  Serial.print(", Kd: ");
+  Serial.print(Kd);
 
   Serial.println();
+
+  unsigned long pid_time_curr = millis();
+  unsigned long pid_time_diff = pid_time_curr - pid_time_prev;
+
+  if (pid_time_diff >= 200) {
+    updateTunings();
+  }
 
   delay(50);
 }
